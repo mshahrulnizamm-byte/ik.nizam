@@ -3,596 +3,718 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DASHBOARD LAPORAN MAKMAL PERUBATAN HOAG</title>
-
+    <title>Dashboard Denggi & Lepto</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Chart.js & PapaParse -->
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- ChartDataLabels Plugin -->
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <!-- PapaParse -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-
-    <!-- Flatpickr (Kalendar) -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        
-        body { 
-            font-family: 'Inter', sans-serif; 
-            background-color: #d4b7ee; 
-            margin: 0; 
-            color: #334155;
-        }
-
-        .card {
-            border-radius: 12px;
-            box-shadow: 0 8px 18px rgba(145, 38, 238, 0.35); /* Shadow dari warna #9126ee */
-            border: 1px solid rgba(255, 255, 255, 0.6);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            backdrop-filter: blur(4px);
-        }
-
-        .card-header {
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: #475569;
-            padding: 12px 16px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.4);
-            background-color: rgba(255, 255, 255, 0.4);
-        }
-
-        .card-body { 
-            padding: 16px; 
-            flex-grow: 1; 
-            position: relative; 
-        }
-
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
-        #loader {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255,255,255,0.95); z-index: 9999;
-            display: none; /* Ditukar kepada none pada asalnya */
-            flex-direction: column; justify-content: center; align-items: center;
-        }
-        .spinner {
-            border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6;
-            border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        /* CSS BARU UNTUK SKRIN LOGIN */
-        #loginScreen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #f1f5f9; z-index: 10000;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-        }
-        .login-box {
-            background: white; padding: 30px; border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(145, 38, 238, 0.2);
-            text-align: center; max-w-sm w-full mx-4 border border-slate-200;
-        }
+        body { font-family: 'Inter', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { height: 8px; width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        #loadingScreen { transition: opacity 0.5s ease; }
+        canvas { cursor: pointer; }
     </style>
 </head>
-<body class="p-4 md:p-6 min-h-screen">
+<body class="bg-slate-50 text-slate-800 min-h-screen">
 
-    <!-- LOGIN SCREEN -->
-    <div id="loginScreen">
-        <div class="login-box w-full max-w-sm">
-            <i class="fa-solid fa-lock text-purple-600 text-4xl mb-4"></i>
-            <h2 class="text-xl font-bold text-slate-800 mb-1">Akses Terhad</h2>
-            <p class="text-xs text-slate-500 mb-6">Sila masukkan kata laluan untuk melihat Dashboard HOAG.</p>
-            
-            <input type="password" id="passInput" class="w-full bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block p-2.5 mb-4 text-center outline-none tracking-widest" placeholder="••••••••">
-            
-            <p id="errorMsg" class="text-xs text-red-500 font-bold mb-4 hidden">Kata laluan salah!</p>
-            
-            <button onclick="checkPassword()" class="w-full text-white bg-purple-600 hover:bg-purple-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center transition shadow-md">Log Masuk</button>
+    <div id="loginScreen" class="fixed inset-0 bg-slate-900/85 backdrop-blur-md z-[100] flex flex-col items-center justify-center transition-opacity duration-500">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl w-11/12 max-w-md transform transition-all border border-gray-100">
+            <div class="text-center mb-6">
+                <div class="w-20 h-20 bg-gradient-to-br from-indigo-100 to-blue-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-5 text-4xl shadow-inner border border-indigo-200">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <h2 class="text-2xl font-extrabold text-gray-800 tracking-tight">Log Masuk Keselamatan</h2>
+                <p class="text-gray-500 text-sm mt-2 font-medium">Sila masukkan kata laluan untuk mengakses dashboard.</p>
+            </div>
+            <div class="space-y-5">
+                <div>
+                    <input type="password" id="passwordInput" placeholder="Masukkan Kata Laluan..." class="w-full px-5 py-4 rounded-xl border-2 border-gray-200 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition-all font-medium text-center text-lg tracking-widest text-slate-700 shadow-sm" onkeypress="if(event.key === 'Enter') submitPassword()">
+                    <p id="passwordError" class="text-red-500 text-xs font-bold mt-2 hidden text-center bg-red-50 py-1.5 rounded-lg border border-red-100"><i class="fa-solid fa-circle-exclamation mr-1"></i> Kata laluan salah. Sila cuba lagi.</p>
+                </div>
+                <button onclick="submitPassword()" class="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-bold py-4 px-4 rounded-xl shadow-lg shadow-indigo-200 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 text-lg">
+                    Buka Dashboard <i class="fa-solid fa-unlock-keyhole"></i>
+                </button>
+            </div>
         </div>
     </div>
 
-    <!-- Loading Screen -->
-    <div id="loader">
-        <div class="spinner mb-4"></div>
-        <h2 class="text-lg font-bold text-purple-900">Memuat turun data...</h2>
-        <p class="text-sm text-purple-700 mt-2">Sila tunggu sebentar</p>
+    <div id="loadingScreen" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mb-4"></div>
+        <h2 class="text-xl font-semibold text-gray-700">Memuatkan Dashboard...</h2>
+        <p class="text-gray-500 mt-2 text-sm" id="loadingText">Menyusun dan menganalisis data pesakit.</p>
     </div>
 
-    <div class="max-w-[1400px] mx-auto">
-        <!-- Header -->
-        <header class="mb-6 pb-4 border-b border-purple-400/40">
-            <h1 class="text-2xl font-bold text-purple-900 tracking-tight uppercase drop-shadow-sm">DASHBOARD LAPORAN MAKMAL PERUBATAN HOAG</h1>
-            <p class="text-sm text-purple-800 font-medium mt-1">Dibina oleh PPKP Nizam</p>
+    <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+        
+        <header class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4 border-b border-gray-200 pb-4">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-3">
+                    <i class="fa-solid fa-virus-covid text-red-500"></i>
+                    Denggi & Lepto di HQ
+                </h1>
+                <p class="text-gray-500 font-medium mt-1 text-sm md:text-base">
+                    Dibina oleh PPKP Nizam 
+                    <span id="dataStatus" class="ml-2 px-2 py-0.5 text-xs rounded-full bg-gray-200 text-gray-700 shadow-sm border border-gray-300">
+                        Memuatkan...
+                    </span>
+                </p>
+            </div>
+
+            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full lg:w-auto">
+                <div class="w-full sm:w-auto">
+                    <label for="globalTestFilter" class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Filter: Penyakit</label>
+                    <div class="relative">
+                        <select id="globalTestFilter" class="appearance-none w-full sm:w-48 bg-white border border-gray-300 text-gray-700 py-2 px-4 pr-8 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium cursor-pointer">
+                            <option value="All">Semua Penyakit</option>
+                            <option value="DENGGI">Denggi Sahaja</option>
+                            <option value="LEPTO">Lepto Sahaja</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                            <i class="fa-solid fa-chevron-down text-xs"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="w-full sm:w-auto">
+                    <label for="globalUnitFilter" class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Filter: Unit Melapor (Kolum F)</label>
+                    <div class="relative">
+                        <select id="globalUnitFilter" class="appearance-none w-full sm:w-64 bg-white border border-gray-300 text-gray-700 py-2 px-4 pr-8 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium cursor-pointer">
+                            <option value="All">Semua Unit</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                            <i class="fa-solid fa-chevron-down text-xs"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-blue-50 border border-blue-100 px-4 py-2 rounded-lg shadow-sm flex flex-col justify-center h-full min-w-[120px]">
+                    <span class="text-xs text-blue-500 font-bold uppercase">Kemaskini</span>
+                    <span id="lastUpdateDate" class="text-sm font-semibold text-blue-900">--/--/----</span>
+                </div>
+            </div>
         </header>
 
-        <!-- KPI Row -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div class="card border-l-4 border-l-blue-400 bg-[#e0f2fe]">
-                <div class="card-body">
-                    <p class="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Jumlah Laporan</p>
-                    <h2 class="text-3xl font-bold text-slate-800" id="kpiTotal">0</h2>
+        <div id="filterIndicator" class="hidden items-center justify-between bg-indigo-50 border border-indigo-200 text-indigo-800 px-4 py-3 rounded-lg mb-6 shadow-sm">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-filter text-indigo-500"></i>
+                <span class="font-medium text-sm" id="activeFilterText">Menapis: ...</span>
+            </div>
+            <button onclick="resetCrossFilters()" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-semibold py-1 px-3 rounded-md text-xs transition-colors shadow-sm">
+                <i class="fa-solid fa-rotate-right mr-1"></i> Reset Semua Filter
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <!-- Kad Total -->
+            <div class="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg shadow-blue-200 p-6 flex items-center justify-between transform hover:-translate-y-1 transition-all duration-300 border border-blue-400">
+                <div>
+                    <p class="text-xs font-bold text-blue-100 uppercase tracking-wider">Kes Dilaporkan</p>
+                    <h3 id="totalKes" class="text-4xl font-bold text-white mt-1 drop-shadow-md">0</h3>
+                </div>
+                <div class="h-14 w-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white text-2xl shadow-inner border border-white/30"><i class="fa-solid fa-file-medical"></i></div>
+            </div>
+            <!-- Kad Denggi -->
+            <div class="bg-gradient-to-br from-rose-500 to-red-600 rounded-2xl shadow-lg shadow-red-200 p-6 flex items-center justify-between transform hover:-translate-y-1 transition-all duration-300 border border-red-400">
+                <div>
+                    <p class="text-xs font-bold text-red-100 uppercase tracking-wider">Denggi (Detected)</p>
+                    <h3 id="totalDenggi" class="text-4xl font-bold text-white mt-1 drop-shadow-md">0</h3>
+                </div>
+                <div class="h-14 w-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white text-2xl shadow-inner border border-white/30"><i class="fa-solid fa-mosquito"></i></div>
+            </div>
+            <!-- Kad Lepto -->
+            <div class="bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl shadow-lg shadow-orange-200 p-6 flex items-center justify-between transform hover:-translate-y-1 transition-all duration-300 border border-orange-300">
+                <div>
+                    <p class="text-xs font-bold text-orange-50 uppercase tracking-wider">Lepto (Detected)</p>
+                    <h3 id="totalLepto" class="text-4xl font-bold text-white mt-1 drop-shadow-md">0</h3>
+                </div>
+                <div class="h-14 w-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white text-2xl shadow-inner border border-white/30"><i class="fa-solid fa-droplet"></i></div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+            <!-- 1. Bulan (Jan-Jul) -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[320px] hover:shadow-md transition-shadow">
+                <div class="bg-blue-50 py-2 px-3 rounded-lg border border-blue-100 mb-3 shadow-sm shrink-0">
+                    <h3 class="text-xs font-bold text-blue-800 text-center uppercase tracking-wider">Laporan Bulan</h3>
+                </div>
+                <div class="relative flex-1 w-full min-h-0"><canvas id="chartBulan"></canvas></div>
+            </div>
+            
+            <!-- 2. Keputusan Pie -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[320px] hover:shadow-md transition-shadow">
+                <div class="bg-emerald-50 py-2 px-3 rounded-lg border border-emerald-100 mb-3 shadow-sm shrink-0">
+                    <h3 class="text-xs font-bold text-emerald-800 text-center uppercase tracking-wider">Detect / Negatif</h3>
+                </div>
+                <div class="relative flex-1 w-full min-h-0"><canvas id="chartKeputusan"></canvas></div>
+            </div>
+            
+            <!-- 3. Jantina Pie -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[320px] hover:shadow-md transition-shadow">
+                <div class="bg-pink-50 py-2 px-3 rounded-lg border border-pink-100 mb-3 shadow-sm shrink-0">
+                    <h3 class="text-xs font-bold text-pink-800 text-center uppercase tracking-wider">Lelaki / Perempuan</h3>
+                </div>
+                <div class="relative flex-1 w-full min-h-0"><canvas id="chartJantina"></canvas></div>
+            </div>
+            
+            <!-- 4. Umur Bar -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[320px] hover:shadow-md transition-shadow">
+                <div class="bg-purple-50 py-2 px-3 rounded-lg border border-purple-100 mb-3 shadow-sm shrink-0">
+                    <h3 class="text-xs font-bold text-purple-800 text-center uppercase tracking-wider">Kumpulan Umur</h3>
+                </div>
+                <div class="relative flex-1 w-full min-h-0"><canvas id="chartUmur"></canvas></div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-6 flex flex-col hover:shadow-md transition-shadow">
+            <div class="flex flex-col sm:flex-row justify-between items-center bg-indigo-50 py-3 px-4 rounded-xl border border-indigo-100 mb-4 shadow-sm gap-4">
+                <h3 class="text-sm font-bold text-indigo-800 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-chart-line text-indigo-500"></i> Tren Kes Harian (Ikut Minggu Epid)
+                </h3>
+                <div class="flex items-center gap-2">
+                    <label class="text-xs font-semibold text-indigo-700">Mula:</label>
+                    <input type="date" id="epidStart" class="text-xs p-1.5 border border-indigo-200 rounded-md focus:outline-indigo-500 focus:ring-1 focus:ring-indigo-500 text-indigo-900 bg-white">
+                    <label class="text-xs font-semibold text-indigo-700 ml-2">Akhir:</label>
+                    <input type="date" id="epidEnd" class="text-xs p-1.5 border border-indigo-200 rounded-md focus:outline-indigo-500 focus:ring-1 focus:ring-indigo-500 text-indigo-900 bg-white">
                 </div>
             </div>
-            <div class="card border-l-4 border-l-pink-400 bg-[#fce7f3]">
-                <div class="card-body">
-                    <p class="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Test Tertinggi</p>
-                    <h2 class="text-xl font-bold text-pink-600 truncate mt-1" id="kpiTopTest">-</h2>
-                </div>
+            <div class="relative h-72 w-full">
+                <canvas id="chartEpid"></canvas>
             </div>
-            <div class="card border-l-4 border-l-emerald-400 bg-[#d1fae5]">
-                <div class="card-body flex flex-col justify-center">
-                    <label for="filterDate" class="text-xs text-slate-500 font-bold uppercase tracking-wider mb-2">Penapis Tarikh</label>
-                    <div class="relative">
-                        <input type="text" id="filterDate" class="w-full bg-white/70 border border-white/50 text-slate-900 text-sm rounded focus:ring-emerald-400 focus:border-emerald-400 block p-2 pr-8 outline-none cursor-pointer placeholder-slate-500 shadow-inner" placeholder="Pilih 1 atau julat tarikh...">
-                        <i class="fa-solid fa-calendar-days absolute right-3 top-2.5 text-emerald-600 pointer-events-none"></i>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-md border border-gray-200 flex flex-col min-h-[400px] overflow-hidden">
+            <div class="p-4 border-b border-slate-700 flex flex-col sm:flex-row justify-between items-center bg-slate-800 gap-4">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-users text-blue-400"></i> Senarai Perincian Pesakit
+                </h3>
+                <div class="flex items-center gap-4 w-full sm:w-auto">
+                    <!-- Kotak Carian -->
+                    <div class="relative w-full sm:w-72">
+                        <input type="text" id="tableSearchBox" placeholder="Cari Nama, IC atau Ujian..." class="w-full pl-9 pr-3 py-2 border border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-inner bg-slate-700 text-white placeholder-slate-400 transition-colors">
+                        <i class="fa-solid fa-search absolute left-3 top-2.5 text-slate-400"></i>
                     </div>
-                    <button onclick="resetDateFilter()" class="text-[10px] text-emerald-700 font-bold mt-1.5 text-left hover:underline">Tunjuk Semua (Reset)</button>
+                    <span id="tableRecordCount" class="text-xs font-bold bg-blue-500 text-white py-2 px-3 rounded-lg whitespace-nowrap shadow-sm border border-blue-400">0 rekod</span>
                 </div>
             </div>
-            <div class="card border-l-4 border-l-amber-400 bg-[#fef3c7]">
-                <div class="card-body">
-                    <p class="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Kemas Kini Terakhir</p>
-                    <h2 class="text-sm font-bold text-slate-700 mt-2" id="kpiDate">-</h2>
-                </div>
-            </div>
-        </div>
-
-        <!-- Middle Row: 2 Charts (Test, Jantina) -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <div class="card h-[350px] bg-[#f5f3ff]">
-                <div class="card-header flex items-center justify-between border-b-white/50">
-                    <span><i class="fa-solid fa-flask text-purple-500 mr-2"></i>Analisis Test</span>
-                    <span class="text-[10px] bg-white/60 text-purple-700 px-2 py-1 rounded font-normal shadow-sm">(Klik bar untuk tapis)</span>
-                </div>
-                <div class="card-body">
-                    <canvas id="testChart"></canvas>
-                </div>
-            </div>
-            <div class="card h-[350px] bg-[#eff6ff]">
-                <div class="card-header border-b-white/50"><i class="fa-solid fa-venus-mars text-blue-500 mr-2"></i>Analisis Jantina</div>
-                <div class="card-body flex justify-center items-center">
-                    <canvas id="genderChart"></canvas>
-                </div>
+            <div class="overflow-auto custom-scrollbar flex-1 p-0">
+                <table class="min-w-full divide-y divide-gray-200 text-sm w-full">
+                    <thead class="bg-white sticky top-0 shadow-sm z-10">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Tarikh</th>
+                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Nama</th>
+                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">ID / IC</th>
+                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Test</th>
+                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Keputusan</th>
+                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Unit</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="bg-white divide-y divide-gray-100">
+                        <!-- Data dimasukkan via JS -->
+                    </tbody>
+                </table>
             </div>
         </div>
 
-        <!-- Bottom Row: Table -->
-        <div class="grid grid-cols-1 gap-6">
-            <div class="card h-[400px] bg-[#f8fafc]">
-                <div class="card-header flex justify-between items-center border-b-white/50 flex-wrap gap-2">
-                    <span class="flex items-center"><i class="fa-solid fa-list text-blue-500 mr-2"></i>Senarai Penuh Nama Pesakit</span>
-                    
-                    <!-- KOTAK CARIAN BARU -->
-                    <div class="flex items-center bg-white/70 rounded-md border border-slate-200 px-3 py-1.5 shadow-sm focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-400 transition-all flex-grow max-w-sm mx-2">
-                        <i class="fa-solid fa-magnifying-glass text-slate-400 text-xs mr-2"></i>
-                        <input type="text" id="searchInput" oninput="applyFilters()" placeholder="Cari Nama atau No KP..." class="bg-transparent border-none outline-none text-xs text-slate-700 w-full placeholder-slate-400 font-normal">
-                    </div>
-
-                    <span class="text-xs font-semibold text-slate-600 bg-white/60 px-2 py-1 rounded shadow-sm whitespace-nowrap" id="tableCount">0 Rekod</span>
-                </div>
-                <div class="card-body p-0 overflow-auto">
-                    <table class="w-full text-left text-sm whitespace-nowrap">
-                        <thead class="bg-white/70 backdrop-blur sticky top-0 shadow-sm z-10">
-                            <tr>
-                                <th class="px-4 py-3 font-bold text-slate-600 text-xs uppercase border-b border-slate-200">Nama</th>
-                                <th class="px-4 py-3 font-bold text-slate-600 text-xs uppercase border-b border-slate-200">No KP / ID</th>
-                                <th class="px-4 py-3 font-bold text-slate-600 text-xs uppercase border-b border-slate-200">Test (Diagnosis)</th>
-                                <th class="px-4 py-3 font-bold text-slate-600 text-xs uppercase border-b border-slate-200">Result</th>
-                                <th class="px-4 py-3 font-bold text-slate-600 text-xs uppercase border-b border-slate-200">Umur</th>
-                                <th class="px-4 py-3 font-bold text-slate-600 text-xs uppercase border-b border-slate-200">Tarikh Terima</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tableBody" class="divide-y divide-slate-200/60">
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
     </div>
 
     <script>
-        const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQVSeTtDrz1-OpI81y90BGFDZ6_iDSO_YkHm379IRhM7VBGqNUi5BGlcvLTUMrHCDLuSWyEr5YH08Rz/pub?gid=508833822&single=true&output=csv";
+        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTNodPOf0mnEjY2SMqbppl57fIzTeLhFcHdQV_sLda48cITPU0Ugxq-2wmx01LAIUgE2zUWU4kOngb0/pub?gid=815991176&single=true&output=csv';
 
-        let rawData = [];
-        let filteredData = [];
-        let charts = {};
-        let fpInstance = null; // Variabel penyimpan tetapan kalendar
-        let activeTestFilter = null; // Menyimpan status jika ada klik pada graf test
-        
-        // Pilihan warna mengikut jenis Test
-        const testColorMap = {
-            "Leptospirosis": "#8b5cf6", // Ungu
-            "Sputum AFB": "#f97316",    // Oren
-            "VDRL": "#10b981",          // Hijau Emerald
-            "Dengue Combo": "#ef4444",  // Merah
-            "Culture & Sensitivity": "#06b6d4", // Cyan
-            "Lain-lain": "#94a3b8"      // Kelabu (Slate)
-        };
-        const fallbackColors = ['#3b82f6', '#f59e0b', '#ec4899', '#14b8a6', '#84cc16'];
+        let globalData = [];
+        let currentFilteredData = [];
+        let charts = {}; 
+        let tableSearchString = "";
 
-        // Penetapan lalai ChartJS
-        Chart.defaults.font.family = 'Inter';
-        Chart.defaults.color = '#64748b';
+        // Daftar Plugin DataLabels secara global
         Chart.register(ChartDataLabels);
 
-        function initData() {
+        let activeFilters = {
+            unit: 'All', test: 'All', bulan: null, keputusan: null, jantina: null, kumpulanUmur: null,
+            epidStart: null, epidEnd: null
+        };
+
+        async function initApp() {
             Papa.parse(CSV_URL, {
                 download: true,
-                header: true,
+                header: false,
                 skipEmptyLines: true,
                 complete: function(results) {
                     try {
-                        processData(results.data);
-                        setupDatePicker(); // Ganti sistem dropdown kepada kalendar
-                        initCharts(); // Isytihar semua carta
-                        applyFilters(); // Isi data carta
-                        
-                        document.getElementById('loader').style.opacity = '0';
-                        setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
-                        updateTimeDisplay();
-                    } catch (err) {
-                        showError("Ralat semasa memproses data: " + err.stack);
-                        console.error(err);
+                        processRawData(results.data);
+                    } catch (e) {
+                        console.error("Ralat memproses data:", e);
+                        setStatusBadge(false, "Ralat Sistem. Data Simulasi Digunakan.");
+                        globalData = generateMockData();
+                        initDashboard();
                     }
                 },
                 error: function(err) {
-                    showError("Gagal memuat turun data dari Google Sheets.");
+                    console.error("Gagal muat turun CSV:", err);
+                    setStatusBadge(false, "Gagal Muat Turun. Data Simulasi Digunakan.");
+                    globalData = generateMockData();
+                    initDashboard();
                 }
             });
         }
 
-        function showError(msg) {
-            document.getElementById('loader').innerHTML = `
-                <i class="fa-solid fa-triangle-exclamation text-red-500 text-4xl mb-4"></i>
-                <h2 class="text-xl font-bold text-red-600">Ralat Sistem</h2>
-                <p class="text-sm text-slate-500 mt-2 text-center max-w-md">${msg}</p>
-            `;
-        }
-
-        function processData(data) {
-            if(!data || data.length === 0) throw new Error("Tiada data dijumpai dalam CSV.");
+        function processRawData(rows) {
+            let processed = [];
             
-            const headers = Object.keys(data[0]);
-
-            // Pemetaan Kolum secara spesifik (Indeks bermula dari 0: A=0, B=1, C=2, D=3, dll)
-            const colDate = headers.length > 2 ? headers[2] : headers[0]; // Kolum C (Tarikh)
-            const colNama = headers.length > 4 ? headers[4] : headers[0]; // Kolum E (Nama)
-            const colIC   = headers.length > 5 ? headers[5] : headers[0]; // Kolum F (IC / ID)
-            const colJan  = headers.length > 6 ? headers[6] : headers[0]; // Kolum G (Jantina)
-            const colUmur = headers.length > 7 ? headers[7] : headers[0]; // Kolum H (Umur)
-            const colTest = headers.length > 9 ? headers[9] : headers[0]; // Kolum J (Test)
-            const colResult = headers.length > 10 ? headers[10] : headers[0]; // Kolum K (Result)
-
-            rawData = data.map(row => {
-                // 1. Kategori Jantina (Dari kolum G: L = Lelaki, P = Perempuan)
-                let rawJan = (row[colJan] || "").toString().trim().toUpperCase();
-                let normJan = "Tiada Data";
-                if(rawJan === 'L') normJan = 'Lelaki';
-                else if(rawJan === 'P') normJan = 'Perempuan';
-
-                // 2. Kategori Umur
-                let rawUmur = (row[colUmur] || "").toString().trim();
-                let umurRaw = parseInt(rawUmur);
-                let kumpulanUmur = "Tiada Maklumat";
+            rows.forEach((originalRow, index) => {
+                // Kebal ralat: Pastikan row wujud dan adalah array
+                if (!originalRow || !Array.isArray(originalRow)) return;
                 
-                if (!isNaN(umurRaw)) {
-                    if(umurRaw < 14) kumpulanUmur = "< 14";
-                    else if(umurRaw >= 14 && umurRaw <= 50) kumpulanUmur = "15 - 50";
-                    else if(umurRaw > 50) kumpulanUmur = "> 50";
-                } else {
-                    umurRaw = "-";
-                }
-
-                // 3. Tarikh Terima (Hanya ambil tarikh, buang masa di belakang)
-                let rawDate = (row[colDate] || "").toString().trim();
-                // Pecahkan teks berdasarkan 'space' dan ambil yang pertama sahaja
-                let cleanDate = rawDate.split(/[\s,]+/)[0]; 
-                let monthStr = "Tiada Tarikh";
+                // Tukar setiap sel jadi string yang bersih untuk elak error null.toString()
+                let row = originalRow.map(cell => cell ? cell.toString().trim() : "");
+                let rowStr = row.join(' ').toUpperCase();
                 
-                if (cleanDate) {
-                    // Cari nombor bulan menggunakan pemisah titik, slash, atau dash
-                    let parts = cleanDate.split(/[\.\-\/]/); 
-                    if (parts.length >= 2) {
-                         let m = parseInt(parts[1]); 
-                         if (!isNaN(m) && m >= 1 && m <= 12) {
-                             const monthNames = ["Jan", "Feb", "Mac", "Apr", "Mei", "Jun", "Jul", "Ogo", "Sep", "Okt", "Nov", "Dis"];
-                             monthStr = monthNames[m - 1];
-                         }
-                    } else {
-                         // Jika tarikh sekadar teks penuh bulan, set lalai
-                         monthStr = cleanDate.length > 3 ? cleanDate.substring(0,3) : cleanDate;
+                // Cari baris yang berkaitan sahaja
+                if ((rowStr.includes('DENGUE') || rowStr.includes('LEPTO') || rowStr.includes('DENGGI')) && 
+                    !rowStr.includes('NAMA') && !rowStr.includes('TARIKH')) {
+                    
+                    // Kolum F adalah index 5 (0-based)
+                    let unitVal = (row[5] && row[5] !== '') ? row[5] : 'Lain-lain';
+
+                    // Logik Keputusan: Buang NOT DETECTED dulu supaya tak keliru dengan DETECTED
+                    let strTanpaNot = rowStr.replace(/NOT DETECTED/g, ''); 
+                    let finalResult = (strTanpaNot.includes('DETECTED') || strTanpaNot.includes('POSITIF') || strTanpaNot.includes('POSITIVE')) ? 'Detected' : 'Negatif';
+                    let testVal = (rowStr.includes('DENGUE') || rowStr.includes('DENGGI')) ? 'DENGGI' : 'LEPTO';
+                    
+                    // Cari Jantina
+                    let jantinaCell = row.find(c => ['L','P','LELAKI','PEREMPUAN'].includes(c.toUpperCase()));
+                    let genderFinal = 'Tiada Data';
+                    if(jantinaCell) {
+                        let j = jantinaCell.toUpperCase();
+                        genderFinal = (j === 'L' || j === 'LELAKI') ? 'Lelaki' : 'Perempuan';
                     }
+
+                    // Cari Umur (1 ke 3 digit nombor)
+                    let umurCell = row.find(c => /^\d{1,3}$/.test(c));
+                    let umurNum = umurCell ? parseInt(umurCell) : 0;
+                    let kumpulanUmur = "< 14";
+                    if (umurNum >= 14 && umurNum <= 50) kumpulanUmur = "14 - 50";
+                    else if (umurNum > 50) kumpulanUmur = "> 50";
+
+                    // Cari Tarikh (Format xx.xx.xxxx atau xx/xx/xxxx)
+                    let tarikhCell = row.find(c => /\d{1,2}[\.\/\-]\d{1,2}[\.\/\-]\d{2,4}/.test(c)) || '';
+                    let dateObj = parseDateObject(tarikhCell);
+                    let bulanStr = dateObj ? getBulanName(dateObj.getMonth() + 1) : 'Lain';
+
+                    // Cari Nama (teks panjang tanpa nombor)
+                    let namaCell = row.find(c => c.length > 8 && !/\d/.test(c) && !c.toUpperCase().includes('DENGUE') && !c.toUpperCase().includes('LEPTO'));
+                    
+                    // Cari IC (format XXXXXX-XX-XXXX atau XXXXXXXXXXXX)
+                    let icCell = row.find(c => /^\d{6}[\-\s]?\d{2}[\-\s]?\d{4}$|^\d{12}$/.test(c));
+
+                    processed.push({
+                        id: index,
+                        nama: namaCell ? namaCell : 'Tiada Nama',
+                        ic: icCell ? icCell : '-',
+                        test: testVal,
+                        keputusan: finalResult,
+                        unit: unitVal,
+                        jantina: genderFinal,
+                        umur: umurNum,
+                        kumpulanUmur: kumpulanUmur,
+                        bulan: bulanStr,
+                        rawDate: tarikhCell,
+                        dateObj: dateObj
+                    });
                 }
-
-                // 4. Kategori Test (Diagnosis dari kolum J)
-                let rawTest = (row[colTest] || "").toString().trim();
-                let lowerTest = rawTest.toLowerCase();
-                let normTest = "Lain-lain";
-                
-                if (lowerTest.includes("leptospirosis") || lowerTest.includes("lepto")) normTest = "Leptospirosis";
-                else if (lowerTest.includes("sputum afb") || lowerTest.includes("afb")) normTest = "Sputum AFB";
-                else if (lowerTest.includes("vdrl")) normTest = "VDRL";
-                else if (lowerTest.includes("dengue") || lowerTest.includes("denggi") || lowerTest.includes("combo")) normTest = "Dengue Combo";
-                else if (lowerTest.includes("culture") || lowerTest.includes("sensitivity") || lowerTest.includes("c&s")) normTest = "Culture & Sensitivity";
-                else if (rawTest !== "") normTest = rawTest; // Pastikan data lain-lain ditangkap
-
-                let rawResult = (row[colResult] || "-").toString().trim();
-
-                return {
-                    date: cleanDate, // Guna tarikh yang tiada masa
-                    month: monthStr,
-                    test: normTest,
-                    result: rawResult,
-                    jantina: normJan,
-                    umurRaw: umurRaw,
-                    umurLvl: kumpulanUmur,
-                    nama: (row[colNama] || "Tidak Dinamakan").toString().trim(),
-                    ic: (row[colIC] || "-").toString().trim()
-                };
             });
+
+            globalData = processed;
+            setStatusBadge(true, "Data CSV (Live)");
+            initDashboard();
         }
 
-        // Fungsi tukar teks "19.07.2026" menjadi Objek Tarikh supaya sistem boleh bandingkan
-        function parseCustomDate(dateStr) {
+        function parseDateObject(dateStr) {
             if(!dateStr) return null;
-            const parts = dateStr.split(/[\.\-\/]/); 
-            if(parts.length >= 3) {
-                // Date(Tahun, Bulan [0-11], Hari)
-                return new Date(parts[2], parseInt(parts[1]) - 1, parts[0]);
+            let match = dateStr.match(/(\d{1,2})[\.\/\-](\d{1,2})[\.\/\-](\d{2,4})/);
+            if (match) {
+                let day = parseInt(match[1]);
+                let month = parseInt(match[2]) - 1; 
+                let year = parseInt(match[3]);
+                if(year < 100) year += 2000;
+                return new Date(year, month, day);
             }
             return null;
         }
 
-        // Setup Kalendar Flatpickr
-        function setupDatePicker() {
-            fpInstance = flatpickr("#filterDate", {
-                mode: "range",         // Benarkan pilihan Julat
-                dateFormat: "d.m.Y",   // Format papar dalam input
-                allowInput: false,
-                onChange: function(selectedDates, dateStr, instance) {
-                    applyFilters(selectedDates);
-                }
-            });
+        function getBulanName(monthNum) {
+            const m = ["", "Jan", "Feb", "Mac", "Apr", "Mei", "Jun", "Jul", "Ogo", "Sep", "Okt", "Nov", "Dis"];
+            return (monthNum >= 1 && monthNum <= 12) ? m[monthNum] : 'Lain';
         }
 
-        // Fungsi butang Set Semula
-        function resetDateFilter() {
-            if(fpInstance) fpInstance.clear(); // Kosongkan input kalendar
-            activeTestFilter = null; // Buang cross-filter graf
-            const searchInput = document.getElementById('searchInput');
-            if(searchInput) searchInput.value = ""; // Kosongkan kotak carian
-            applyFilters([]); // Hantar array kosong (reset)
+        // Formula Minggu Epidemiologi (ME) Malaysia (Bermula Ahad)
+        function getMingguEpid(dateObj) {
+            if (!dateObj) return '';
+            const firstDayOfYear = new Date(dateObj.getFullYear(), 0, 1);
+            const pastDaysOfYear = (dateObj - firstDayOfYear) / 86400000;
+            // Dapatkan hari pertama tahun tersebut (0 = Ahad, 1 = Isnin, dsb)
+            const firstDayOfWeek = firstDayOfYear.getDay(); 
+            // Kira nombor minggu
+            const weekNumber = Math.ceil((pastDaysOfYear + firstDayOfWeek + 1) / 7);
+            const yearShort = dateObj.getFullYear().toString().slice(-2);
+            return `ME ${weekNumber}/${yearShort}`;
         }
 
-        // Logik penapisan baru (Single Date atau Date Range + Cross Filter)
-        function applyFilters(selectedDates = []) {
-            // Jika dipanggil tanpa parameter, dapatkan nilai kalendar semasa
-            if ((!selectedDates || selectedDates.length === 0) && fpInstance) {
-                selectedDates = fpInstance.selectedDates;
-            }
-
-            let baseData = [...rawData];
-
-            // 1. PENAPIS TARIKH
-            if (selectedDates && selectedDates.length === 1) {
-                let start = new Date(selectedDates[0]);
-                start.setHours(0,0,0,0);
-                
-                baseData = rawData.filter(d => {
-                    let dDate = parseCustomDate(d.date);
-                    if(!dDate) return false;
-                    dDate.setHours(0,0,0,0);
-                    return dDate.getTime() === start.getTime();
-                });
-            } else if (selectedDates && selectedDates.length === 2) {
-                let start = new Date(selectedDates[0]);
-                let end = new Date(selectedDates[1]);
-                start.setHours(0,0,0,0);
-                end.setHours(23,59,59,999); 
-                
-                baseData = rawData.filter(d => {
-                    let dDate = parseCustomDate(d.date);
-                    if(!dDate) return false;
-                    return dDate >= start && dDate <= end;
-                });
-            }
-
-            // 2. CROSS FILTER DARI GRAF TEST
-            if (activeTestFilter) {
-                filteredData = baseData.filter(d => d.test === activeTestFilter);
-            } else {
-                filteredData = baseData;
-            }
-
-            // 3. PENAPIS CARIAN TEPAT (NAMA ATAU IC)
-            const searchInput = document.getElementById('searchInput');
-            if (searchInput) {
-                const searchTerm = searchInput.value.toLowerCase().trim();
-                if (searchTerm !== "") {
-                    filteredData = filteredData.filter(d => 
-                        d.nama.toLowerCase().includes(searchTerm) || 
-                        d.ic.toLowerCase().includes(searchTerm)
-                    );
-                }
-            }
-
-            updateKPIs();
-            updateChartsData(baseData); // Hantar baseData supaya bar lain dalam graf tak hilang
-            updateTable();
+        function setStatusBadge(isSuccess, text) {
+            const badge = document.getElementById('dataStatus');
+            badge.className = `ml-2 px-2 py-0.5 text-xs rounded-full shadow-sm font-bold border ${isSuccess ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-100 text-red-700 border-red-300'}`;
+            badge.innerHTML = `<i class='fa-solid ${isSuccess ? 'fa-check-circle' : 'fa-triangle-exclamation'} mr-1'></i> ${text}`;
         }
 
-        function updateKPIs() {
-            document.getElementById('kpiTotal').innerText = filteredData.length.toLocaleString();
-            const testCounts = {};
-            filteredData.forEach(d => { testCounts[d.test] = (testCounts[d.test] || 0) + 1; });
+        function initDashboard() {
+            document.getElementById('lastUpdateDate').innerText = new Date().toLocaleDateString('ms-MY');
             
-            let topTest = "-"; let maxCount = 0;
-            for(const [test, count] of Object.entries(testCounts)) {
-                if(count > maxCount) { maxCount = count; topTest = test; }
-            }
-            document.getElementById('kpiTopTest').innerText = topTest;
+            // Populasikan Unit Filter
+            const filterDropdown = document.getElementById('globalUnitFilter');
+            const units = [...new Set(globalData.map(item => item.unit))].filter(u => u).sort();
+            units.forEach(unit => {
+                let opt = document.createElement('option');
+                opt.value = unit;
+                opt.innerHTML = unit;
+                filterDropdown.appendChild(opt);
+            });
+
+            // Event Listeners untuk Filter Global & Carian
+            filterDropdown.addEventListener('change', (e) => { activeFilters.unit = e.target.value; applyFilters(); });
+            document.getElementById('globalTestFilter').addEventListener('change', (e) => { activeFilters.test = e.target.value; applyFilters(); });
+            document.getElementById('epidStart').addEventListener('change', (e) => { activeFilters.epidStart = e.target.value ? new Date(e.target.value) : null; applyFilters(); });
+            document.getElementById('epidEnd').addEventListener('change', (e) => {
+                if(e.target.value) {
+                    let end = new Date(e.target.value);
+                    end.setHours(23,59,59);
+                    activeFilters.epidEnd = end;
+                } else activeFilters.epidEnd = null;
+                applyFilters();
+            });
+
+            document.getElementById('tableSearchBox').addEventListener('input', (e) => {
+                tableSearchString = e.target.value.toLowerCase();
+                renderTable(currentFilteredData); 
+            });
+
+            // Tutup Loading Screen
+            document.getElementById('loadingScreen').style.opacity = '0';
+            setTimeout(() => document.getElementById('loadingScreen').style.display = 'none', 500);
+
+            applyFilters();
         }
 
-        function initCharts() {
-            const chartOptions = {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false }, datalabels: { color: '#475569', font: { weight: 'bold' }, formatter: (v) => v > 0 ? v : '' } }
+        function resetCrossFilters() {
+            activeFilters.bulan = null;
+            activeFilters.keputusan = null;
+            activeFilters.jantina = null;
+            activeFilters.kumpulanUmur = null;
+            applyFilters();
+        }
+
+        function toggleCrossFilter(key, value) {
+            if(activeFilters[key] === value) activeFilters[key] = null; // Batal klik
+            else activeFilters[key] = value;
+            applyFilters();
+        }
+
+        function applyFilters() {
+            currentFilteredData = globalData.filter(d => {
+                if (activeFilters.unit !== 'All' && d.unit !== activeFilters.unit) return false;
+                if (activeFilters.test !== 'All' && d.test !== activeFilters.test) return false;
+                if (activeFilters.bulan && d.bulan !== activeFilters.bulan) return false;
+                if (activeFilters.keputusan && d.keputusan !== activeFilters.keputusan) return false;
+                if (activeFilters.jantina && d.jantina !== activeFilters.jantina) return false;
+                if (activeFilters.kumpulanUmur && d.kumpulanUmur !== activeFilters.kumpulanUmur) return false;
+                if (activeFilters.epidStart && d.dateObj && d.dateObj < activeFilters.epidStart) return false;
+                if (activeFilters.epidEnd && d.dateObj && d.dateObj > activeFilters.epidEnd) return false;
+                return true;
+            });
+
+            updateFilterIndicator();
+            renderScorecards(currentFilteredData);
+            renderCharts(currentFilteredData);
+            renderEpidChart(currentFilteredData);
+            renderTable(currentFilteredData);
+        }
+
+        function updateFilterIndicator() {
+            const ind = document.getElementById('filterIndicator');
+            const txt = document.getElementById('activeFilterText');
+            let active = [];
+            if(activeFilters.bulan) active.push(`Bulan: ${activeFilters.bulan}`);
+            if(activeFilters.keputusan) active.push(`Keputusan: ${activeFilters.keputusan}`);
+            if(activeFilters.jantina) active.push(`Jantina: ${activeFilters.jantina}`);
+            if(activeFilters.kumpulanUmur) active.push(`Umur: ${activeFilters.kumpulanUmur}`);
+
+            if(active.length > 0) {
+                txt.innerText = "Menapis Data secara silang: " + active.join(" | ");
+                ind.style.display = "flex";
+            } else {
+                ind.style.display = "none";
+            }
+        }
+
+        function renderScorecards(data) {
+            document.getElementById('totalKes').innerText = data.length;
+            const isDenggi = (val) => val.includes('DENGGI') || val.includes('DENGUE');
+            const isLepto = (val) => val.includes('LEPTO');
+            const isDetect = (val) => val === 'Detected';
+
+            document.getElementById('totalDenggi').innerText = data.filter(d => isDenggi(d.test) && isDetect(d.keputusan)).length;
+            document.getElementById('totalLepto').innerText = data.filter(d => isLepto(d.test) && isDetect(d.keputusan)).length;
+        }
+
+        function renderCharts(data) {
+            Chart.defaults.font.family = 'Inter';
+            Chart.defaults.color = '#64748b';
+
+            // 1. Carta Bulan (Terhad Jan-Jul sahaja atas permintaan)
+            const bulanLabels = ["Jan", "Feb", "Mac", "Apr", "Mei", "Jun", "Jul"];
+            const bulanColors = ['#ef4444', '#f97316', '#f59e0b', '#84cc16', '#10b981', '#06b6d4', '#3b82f6'];
+            const bulanDataArr = bulanLabels.map(l => data.filter(d => d.bulan === l).length);
+            createOrUpdateChart('chartBulan', 'bar', bulanLabels, bulanDataArr, bulanColors, 'bulan');
+
+            // 2. Carta Keputusan (Pai)
+            const kepLabels = ['Detected', 'Negatif'];
+            const kepData = kepLabels.map(l => data.filter(d => d.keputusan === l).length);
+            createOrUpdateChart('chartKeputusan', 'pie', kepLabels, kepData, ['#ef4444', '#10b981'], 'keputusan');
+
+            // 3. Carta Jantina (Pai)
+            const janLabels = ['Lelaki', 'Perempuan'];
+            const janData = janLabels.map(l => data.filter(d => d.jantina === l).length);
+            createOrUpdateChart('chartJantina', 'pie', janLabels, janData, ['#3b82f6', '#ec4899'], 'jantina');
+
+            // 4. Carta Umur (Bar)
+            const umurLabels = ['< 14', '14 - 50', '> 50'];
+            const umurData = umurLabels.map(l => data.filter(d => d.kumpulanUmur === l).length);
+            createOrUpdateChart('chartUmur', 'bar', umurLabels, umurData, ['#8b5cf6', '#a855f7', '#d946ef'], 'kumpulanUmur');
+        }
+
+        function createOrUpdateChart(chartId, type, labels, dataArr, colors, filterKey) {
+            const ctx = document.getElementById(chartId).getContext('2d');
+            if(charts[chartId]) charts[chartId].destroy();
+
+            // Highlight warna jika filter aktif
+            let bgColors = colors;
+            if (activeFilters[filterKey]) {
+                bgColors = labels.map((l, i) => l === activeFilters[filterKey] ? colors[i % colors.length] : '#e2e8f0');
+            }
+
+            // Tetapan label data plugin (Nombor atas graf)
+            let datalabelsConfig = {
+                color: type === 'pie' ? '#ffffff' : '#334155',
+                font: { weight: 'bold', size: 12 },
+                formatter: (value) => value > 0 ? value : '', // Sembunyi nombor 0
+                anchor: type === 'pie' ? 'center' : 'end',
+                align: type === 'pie' ? 'center' : 'top',
+                offset: type === 'pie' ? 0 : 4
             };
 
-            // Carta 1: Analisis Test (Bar Mendatar)
-            charts.test = new Chart(document.getElementById('testChart'), {
-                type: 'bar',
-                data: { labels: [], datasets: [{ data: [], backgroundColor: '#3b82f6', borderRadius: 4 }] },
-                options: { 
-                    ...chartOptions, 
-                    indexAxis: 'y', 
-                    plugins: { ...chartOptions.plugins, datalabels: { anchor: 'end', align: 'right', padding: 4 } }, 
-                    layout: { padding: { right: 30 } },
+            charts[chartId] = new Chart(ctx, {
+                type: type,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: dataArr,
+                        backgroundColor: bgColors,
+                        borderWidth: type === 'pie' ? 2 : 0,
+                        borderColor: '#ffffff',
+                        borderRadius: type === 'bar' ? 4 : 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: type === 'pie' ? 15 : 0
+                    },
+                    plugins: {
+                        datalabels: datalabelsConfig,
+                        legend: { display: type === 'pie', position: 'bottom', labels: { boxWidth: 10, padding: 15 } },
+                        tooltip: { padding: 10 }
+                    },
+                    scales: type === 'bar' ? {
+                        y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 }, max: Math.max(...dataArr, 5) + 2 },
+                        x: { grid: { display: false } }
+                    } : {},
                     onClick: (event, elements, chart) => {
                         if (elements.length > 0) {
-                            const idx = elements[0].index;
-                            const selectedTest = chart.data.labels[idx];
-                            // Togol: Jika diklik bar yang sama, matikan tapisan. Jika lain, tukar tapisan.
-                            if (activeTestFilter === selectedTest) {
-                                activeTestFilter = null; 
-                            } else {
-                                activeTestFilter = selectedTest;
-                            }
-                            applyFilters(); // Jalankan semula susunan data
+                            const index = elements[0].index;
+                            const label = chart.data.labels[index];
+                            toggleCrossFilter(filterKey, label);
                         }
-                    },
-                    onHover: (event, chartElement) => {
-                        event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
                     }
                 }
             });
+        }
 
-            // Carta 2: Analisis Jantina (Pie)
-            charts.gender = new Chart(document.getElementById('genderChart'), {
-                type: 'pie',
-                data: { labels: ['Lelaki', 'Perempuan'], datasets: [{ data: [0,0], backgroundColor: ['#0ea5e9', '#ec4899'] }] },
-                options: { ...chartOptions, plugins: { legend: { display: true, position: 'bottom' }, datalabels: { color: '#ffffff' } } }
+        function renderEpidChart(data) {
+            const ctx = document.getElementById('chartEpid').getContext('2d');
+            if(charts['chartEpid']) charts['chartEpid'].destroy();
+
+            // Kumpul kes mengikut Minggu Epid
+            let meCounts = {};
+            data.forEach(d => {
+                if(d.dateObj) {
+                    let meLabel = getMingguEpid(d.dateObj);
+                    if(!meCounts[meLabel]) meCounts[meLabel] = { count: 0, sortDate: d.dateObj };
+                    meCounts[meLabel].count++;
+                }
+            });
+
+            // Susun kronologi
+            let sortedME = Object.keys(meCounts)
+                .map(k => ({ label: k, count: meCounts[k].count, sortDate: meCounts[k].sortDate }))
+                .sort((a,b) => a.sortDate - b.sortDate);
+
+            let labels = sortedME.map(x => x.label);
+            let chartData = sortedME.map(x => x.count);
+
+            charts['chartEpid'] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Jumlah Kes',
+                        data: chartData,
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#4f46e5',
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        fill: true,
+                        tension: 0.3 // Lengkungan licin
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { display: false },
+                        datalabels: { // Nombor di atas bucu garisan
+                            align: 'top',
+                            anchor: 'end',
+                            color: '#4f46e5',
+                            font: { weight: 'bold', size: 11 },
+                            formatter: (value) => value > 0 ? value : '',
+                            offset: 4
+                        }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 }, max: Math.max(...chartData, 5) + 2 },
+                        x: { grid: { display: false } }
+                    },
+                    interaction: { mode: 'index', intersect: false }
+                }
             });
         }
 
-        function updateChartsData(baseDataForTest) {
-            let dataForTest = baseDataForTest || filteredData;
-
-            let testCounts = {};
-            let genderCounts = {'Lelaki': 0, 'Perempuan': 0};
-
-            // Kira untuk Carta Test (Kekalkan semua bar jika ditapis kalendar)
-            dataForTest.forEach(d => {
-                testCounts[d.test] = (testCounts[d.test] || 0) + 1;
-            });
-
-            // Kira untuk Jantina (Ikut Tapisan Cross Filter penuh)
-            filteredData.forEach(d => {
-                if(genderCounts[d.jantina] !== undefined) genderCounts[d.jantina]++;
-            });
-
-            // Update Carta Test
-            const sortedTest = Object.entries(testCounts).sort((a,b) => b[1] - a[1]).slice(0, 7);
-            charts.test.data.labels = sortedTest.map(x => x[0]);
-            charts.test.data.datasets[0].data = sortedTest.map(x => x[1]);
-            
-            // Masukkan logik multi-warna untuk carta Test & pudar jika tak dipilih
-            let fbIdx = 0;
-            charts.test.data.datasets[0].backgroundColor = sortedTest.map(x => {
-                let tName = x[0];
-                let baseColor = testColorMap[tName];
-                
-                if (!baseColor) {
-                    baseColor = fallbackColors[fbIdx % fallbackColors.length];
-                    fbIdx++;
-                }
-
-                // Jika graf ditapis dan ini BUKAN bar yang aktif, tambahkan kelegapan (hex 40 = 25% opacity)
-                if (activeTestFilter && tName !== activeTestFilter) {
-                    return baseColor + '40';
-                }
-                
-                return baseColor;
-            });
-            
-            charts.test.update();
-
-            // Update Carta Jantina
-            charts.gender.data.datasets[0].data = [genderCounts['Lelaki'], genderCounts['Perempuan']];
-            charts.gender.update();
-        }
-
-        function updateTable() {
+        function renderTable(data) {
             const tbody = document.getElementById('tableBody');
-            document.getElementById('tableCount').innerText = `${filteredData.length} Rekod`;
-            let htmlStr = '';
+            tbody.innerHTML = ''; 
 
-            if(filteredData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-slate-500 font-medium">Tiada rekod pesakit dijumpai.</td></tr>`;
+            let tableData = data;
+            if(tableSearchString) {
+                tableData = data.filter(d => 
+                    d.nama.toLowerCase().includes(tableSearchString) || 
+                    d.ic.toLowerCase().includes(tableSearchString) || 
+                    d.test.toLowerCase().includes(tableSearchString) ||
+                    d.keputusan.toLowerCase().includes(tableSearchString)
+                );
+            }
+
+            document.getElementById('tableRecordCount').innerText = `${tableData.length} rekod`;
+
+            if(tableData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-gray-500 italic">Tiada data dijumpai.</td></tr>`;
                 return;
             }
 
-            const reverseData = [...filteredData].reverse();
+            const displayData = tableData.slice(0, 200);
 
-            reverseData.forEach(d => {
-                htmlStr += `
-                    <tr class="hover:bg-white/60 transition border-b border-slate-200/50 last:border-0">
-                        <td class="px-4 py-3 text-sm text-slate-800 font-medium">${d.nama}</td>
-                        <td class="px-4 py-3 text-sm text-slate-600">${d.ic}</td>
-                        <td class="px-4 py-3 text-sm">
-                            <span class="bg-white/80 text-blue-700 px-2.5 py-1 rounded-full text-xs font-semibold border border-blue-100 shadow-sm">${d.test}</span>
-                        </td>
-                        <td class="px-4 py-3 text-sm">
-                            <span class="bg-purple-100/70 text-purple-800 px-2.5 py-1 rounded-md text-xs border border-purple-200 shadow-sm font-medium">${d.result}</span>
-                        </td>
-                        <td class="px-4 py-3 text-sm text-slate-600">${d.umurRaw} Tahun</td>
-                        <td class="px-4 py-3 text-sm font-semibold text-slate-700">${d.date}</td>
-                    </tr>
+            displayData.forEach(item => {
+                let badgeColor = 'bg-gray-100 text-gray-800';
+                if(item.keputusan === 'Detected') badgeColor = 'bg-red-100 text-red-800';
+                else if(item.keputusan === 'Negatif') badgeColor = 'bg-green-100 text-green-800';
+                
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-blue-50 transition-colors";
+                tr.innerHTML = `
+                    <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-500">${item.rawDate}</td>
+                    <td class="px-6 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${item.nama}</td>
+                    <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-500 font-mono">${item.ic}</td>
+                    <td class="px-6 py-3 whitespace-nowrap text-sm font-bold text-indigo-600">${item.test}</td>
+                    <td class="px-6 py-3 whitespace-nowrap text-sm">
+                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-bold rounded-full ${badgeColor}">
+                            ${item.keputusan}
+                        </span>
+                    </td>
+                    <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-500 truncate max-w-[150px]" title="${item.unit}">${item.unit}</td>
                 `;
+                tbody.appendChild(tr);
             });
-            tbody.innerHTML = htmlStr;
         }
 
-        function updateTimeDisplay() {
-            const now = new Date();
-            const dateString = now.toLocaleDateString('ms-MY', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute:'2-digit' });
-            document.getElementById('kpiDate').innerText = dateString;
+        // Data Mockup Jika Google Sheets Gagal
+        function generateMockData() {
+            let mock = [];
+            for(let i=1; i<=150; i++) {
+                let monthIdx = Math.floor(Math.random() * 7);
+                let dateStr = `15.0${monthIdx+1}.2026`;
+                mock.push({
+                    id: i, nama: `Mock Pesakit ${i}`, ic: `900101-10-${1000+i}`,
+                    test: Math.random() > 0.5 ? 'DENGGI' : 'LEPTO',
+                    keputusan: Math.random() > 0.7 ? 'Detected' : 'Negatif',
+                    unit: Math.random() > 0.5 ? 'Unit Vektor' : 'Klinik A',
+                    jantina: Math.random() > 0.5 ? 'Lelaki' : 'Perempuan',
+                    umur: Math.floor(Math.random() * 60) + 5,
+                    kumpulanUmur: Math.random() > 0.5 ? '14 - 50' : '> 50',
+                    bulan: ["Jan","Feb","Mac","Apr","Mei","Jun","Jul"][monthIdx],
+                    rawDate: dateStr, dateObj: parseDateObject(dateStr)
+                });
+            }
+            return mock;
         }
 
-        // FUNGSI KATA LALUAN
-        function checkPassword() {
-            const input = document.getElementById('passInput').value;
-            // KATA LALUAN ANDA DITETAPKAN DI SINI (Contoh: hoag2026)
-            if (input === 'hoag2026') {
-                document.getElementById('loginScreen').style.display = 'none';
-                document.getElementById('loader').style.display = 'flex';
-                initData(); // Mula muat turun data hanya selepas password betul
+        function submitPassword() {
+            const input = document.getElementById('passwordInput');
+            const err = document.getElementById('passwordError');
+            
+            if (input.value === 'hoag2026') {
+                sessionStorage.setItem('hoagAuth', 'true');
+                const loginScreen = document.getElementById('loginScreen');
+                loginScreen.style.opacity = '0';
+                setTimeout(() => {
+                    loginScreen.style.display = 'none';
+                }, 500);
             } else {
-                document.getElementById('errorMsg').classList.remove('hidden');
-                document.getElementById('passInput').value = '';
-                document.getElementById('passInput').focus();
+                err.classList.remove('hidden');
+                input.classList.add('border-red-400', 'focus:border-red-500', 'focus:ring-red-500/20');
+                setTimeout(() => {
+                    err.classList.add('hidden');
+                    input.classList.remove('border-red-400', 'focus:border-red-500', 'focus:ring-red-500/20');
+                }, 3000); // Mesej ralat hilang selepas 3 saat
             }
         }
 
-        // Benarkan tekan butang "Enter" untuk login
-        document.getElementById("passInput").addEventListener("keypress", function(event) {
-            if (event.key === "Enter") {
-                event.preventDefault();
-                checkPassword();
+        window.addEventListener('DOMContentLoaded', () => {
+            // Semak jika pengguna sudah masukkan password sebelum ini (dalam sesi yang sama)
+            if(sessionStorage.getItem('hoagAuth') === 'true') {
+                document.getElementById('loginScreen').style.display = 'none';
             }
+            initApp();
         });
-
-        // window.onload = initData; // INI DIBUANG SUPAYA DATA TIDAK DIMUAT TURUN SEBELUM LOGIN
-
     </script>
 </body>
 </html>
