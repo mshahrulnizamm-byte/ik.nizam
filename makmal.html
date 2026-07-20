@@ -544,7 +544,6 @@
             const reverseData = [...filteredData].reverse();
 
             reverseData.forEach(d => {
-                // Logik untuk lindungi (mask) 6 digit awal IC
                 let maskedIc = d.ic;
                 if (maskedIc && maskedIc.length > 6 && maskedIc !== "-") {
                     maskedIc = "XXXXXX" + maskedIc.substring(6);
