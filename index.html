@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DASHBOARD LAPORAN MAKMAL PERUBATAN HOAG</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js & PapaParse -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <!-- Flatpickr (Kalendar) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #d4b7ee; 
+            margin: 0; 
+            color: #334155;
+        }
+
+        .card {
+            border-radius: 12px;
+            box-shadow: 0 8px 18px rgba(145, 38, 238, 0.35); /* Shadow dari warna #9126ee */
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            backdrop-filter: blur(4px);
+        }
+
+        .card-header {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #475569;
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+            background-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .card-body { 
+            padding: 16px; 
+            flex-grow: 1; 
+            position: relative; 
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        #loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.95); z-index: 9999;
+            display: none; 
+            flex-direction: column; justify-content: center; align-items: center;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6;
+            border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* SKRIN LOGIN */
+        #loginScreen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #f1f5f9; z-index: 10000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .login-box {
+            background: white; padding: 30px; border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(145, 38, 238, 0.2);
+            text-align: center; max-w-sm w-full mx-4 border border-slate-200;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-6 min-h-screen">
+
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen">
+        <div class="login-box w-full max-w-sm">
+            <i class="fa-solid fa-lock text-purple-600 text-4xl mb-4"></i>
+            <h2 class="text-xl font-bold text-slate-800 mb-1">Akses Terhad</h2>
+            <p class="text-xs text-slate-500 mb-6">Sila masukkan kata laluan untuk melihat Dashboard HOAG.</p>
+            
+            <input type="password" id="passInput" class="w-full bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block p-2.5 mb-4 text-center outline-none tracking-widest" placeholder="••••••••">
+            
+            <p id="errorMsg" class="text-xs text-red-500 font-bold mb-4 hidden">Kata laluan salah!</p>
+            
+            <button onclick="checkPassword()" class="w-full text-white bg-purple-600 hover:bg-purple-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center transition shadow-md">Log Masuk</button>
+        </div>
+    </div>
+
+    <!-- Loading Screen -->
+    <div id="loader">
+        <div class="spinner mb-4"></div>
+        <h2 class="text-lg font-bold text-purple-900">Memuat turun data...</h2>
+        <p class="text-sm text-purple-700 mt-2">Sila tunggu sebentar</p>
+    </div>
+
+    <div class="max-w-[1400px] mx-auto">
+        <!-- Header -->
+        <header class="mb-6 pb-4 border-b border-purple-400/40">
+            <h1 class="text-2xl font-bold text-purple-900 tracking-tight uppercase drop-shadow-sm">DASHBOARD LAPORAN MAKMAL PERUBATAN HOAG</h1>
+            <p class="text-sm text-purple-800 font-medium mt-1">Dibina oleh PPKP Nizam</p>
+        </header>
+
+        <!-- KPI Row -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="card border-l-4 border-l-blue-400 bg-[#e0f2fe]">
+                <div class="card-body">
+                    <p class="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Jumlah Laporan</p>
+                    <h2 class="text-3xl font-bold text-slate-800" id="kpiTotal">0</h2>
+                </div>
+            </div>
+            <div class="card border-l-4 border-l-pink-400 bg-[#fce7f3]">
+                <div class="card-body">
+                    <p class="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Test Tertinggi</p>
+                    <h2 class="text-xl font-bold text-pink-600 truncate mt-1" id="kpiTopTest">-</h2>
+                </div>
+            </div>
+            <div class="card border-l-4 border-l-emerald-400 bg-[#d1fae5]">
+                <div class="card-body flex flex-col justify-center">
+                    <label for="filterDate" class="text-xs text-slate-500 font-bold uppercase tracking-wider mb-2">Penapis Tarikh</label>
+                    <div class="relative">
+                        <input type="text" id="filterDate" class="w-full bg-white/70 border border-white/50 text-slate-900 text-sm rounded focus:ring-emerald-400 focus:border-emerald-400 block p-2 pr-8 outline-none cursor-pointer placeholder-slate-500 shadow-inner" placeholder="Pilih 1 atau julat tarikh...">
+                        <i class="fa-solid fa-calendar-days absolute right-3 top-2.5 text-emerald-600 pointer-events-none"></i>
+                    </div>
+                    <button onclick="resetDateFilter()" class="text-[10px] text-emerald-700 font-bold mt-1.5 text-left hover:underline">Tunjuk Semua (Reset)</button>
+                </div>
+            </div>
+            <div class="card border-l-4 border-l-amber-400 bg-[#fef3c7]">
+                <div class="card-body">
+                    <p class="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Kemas Kini Terakhir</p>
+                    <h2 class="text-sm font-bold text-slate-700 mt-2" id="kpiDate">-</h2>
+                </div>
+            </div>
+        </div>
+
+        <!-- Middle Row: 2 Charts (Test, Jantina) -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <div class="card h-[350px] bg-[#f5f3ff]">
+                <div class="card-header flex items-center justify-between border-b-white/50">
+                    <span><i class="fa-solid fa-flask text-purple-500 mr-2"></i>Analisis Test</span>
+                    <span class="text-[10px] bg-white/60 text-purple-700 px-2 py-1 rounded font-normal shadow-sm">(Klik bar untuk tapis)</span>
+                </div>
+                <div class="card-body">
+                    <canvas id="testChart"></canvas>
+                </div>
+            </div>
+            <div class="card h-[350px] bg-[#eff6ff]">
+                <div class="card-header border-b-white/50"><i class="fa-solid fa-venus-mars text-blue-500 mr-2"></i>Analisis Jantina</div>
+                <div class="card-body flex justify-center items-center">
+                    <canvas id="genderChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Row: Table -->
+        <div class="grid grid-cols-1 gap-6">
+            <div class="card h-[400px] bg-[#f8fafc]">
+                <div class="card-header flex justify-between items-center border-b-white/50 flex-wrap gap-2">
+                    <span class="flex items-center"><i class="fa-solid fa-list text-blue-500 mr-2"></i>Senarai Penuh Nama Pesakit</span>
+                    
+                    <!-- KOTAK CARIAN -->
+                    <div class="flex items-center bg-white/70 rounded-md border border-slate-200 px-3 py-1.5 shadow-sm focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-400 transition-all flex-grow max-w-sm mx-2">
+                        <i class="fa-solid fa-magnifying-glass text-slate-400 text-xs mr-2"></i>
+                        <input type="text" id="searchInput" oninput="applyFilters()" placeholder="Cari Nama atau No KP sebenar..." class="bg-transparent border-none outline-none text-xs text-slate-700 w-full placeholder-slate-400 font-normal">
+                    </div>
+
+                    <span class="text-xs font-semibold text-slate-600 bg-white/60 px-2 py-1 rounded shadow-sm whitespace-nowrap" id="tableCount">0 Rekod</span>
+                </div>
+                <div class="card-body p-0 overflow-auto">
+                    <table class="w-full text-left text-sm whitespace-nowrap">
+                        <thead class="bg-white/70 backdrop-blur sticky top-0 shadow-sm z-10">
+                            <tr>
+                                <th class="px-4 py-3 font-bold text-slate-600 text-xs uppercase border-b border-slate-200">Nama</th>
+                                <th class="px-4 py-3 font-bold text-slate-600 text-xs uppercase border-b border-slate-200">No KP / ID</th>
+                                <th class="px-4 py-3 font-bold text-slate-600 text-xs uppercase border-b border-slate-200">Test (Diagnosis)</th>
+                                <th class="px-4 py-3 font-bold text-slate-600 text-xs uppercase border-b border-slate-200">Result</th>
+                                <th class="px-4 py-3 font-bold text-slate-600 text-xs uppercase border-b border-slate-200">Umur</th>
+                                <th class="px-4 py-3 font-bold text-slate-600 text-xs uppercase border-b border-slate-200">Tarikh Terima</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody" class="divide-y divide-slate-200/60">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQVSeTtDrz1-OpI81y90BGFDZ6_iDSO_YkHm379IRhM7VBGqNUi5BGlcvLTUMrHCDLuSWyEr5YH08Rz/pub?gid=508833822&single=true&output=csv";
+
+        let rawData = [];
+        let filteredData = [];
+        let charts = {};
+        let fpInstance = null; 
+        let activeTestFilter = null; 
+        
+        // Pilihan warna mengikut jenis Test
+        const testColorMap = {
+            "Leptospirosis": "#8b5cf6", 
+            "Sputum AFB": "#f97316",    
+            "VDRL": "#10b981",          
+            "Dengue Combo": "#ef4444",  
+            "Culture & Sensitivity": "#06b6d4", 
+            "Lain-lain": "#94a3b8"      
+        };
+        const fallbackColors = ['#3b82f6', '#f59e0b', '#ec4899', '#14b8a6', '#84cc16'];
+
+        Chart.defaults.font.family = 'Inter';
+        Chart.defaults.color = '#64748b';
+        Chart.register(ChartDataLabels);
+
+        function initData() {
+            Papa.parse(CSV_URL, {
+                download: true,
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    try {
+                        processData(results.data);
+                        setupDatePicker(); 
+                        initCharts(); 
+                        applyFilters(); 
+                        
+                        document.getElementById('loader').style.opacity = '0';
+                        setTimeout(() => document.getElementById('loader').style.display = 'none', 300);
+                        updateTimeDisplay();
+                    } catch (err) {
+                        showError("Ralat semasa memproses data: " + err.stack);
+                        console.error(err);
+                    }
+                },
+                error: function(err) {
+                    showError("Gagal memuat turun data dari Google Sheets.");
+                }
+            });
+        }
+
+        function showError(msg) {
+            document.getElementById('loader').innerHTML = `
+                <i class="fa-solid fa-triangle-exclamation text-red-500 text-4xl mb-4"></i>
+                <h2 class="text-xl font-bold text-red-600">Ralat Sistem</h2>
+                <p class="text-sm text-slate-500 mt-2 text-center max-w-md">${msg}</p>
+            `;
+        }
+
+        function processData(data) {
+            if(!data || data.length === 0) throw new Error("Tiada data dijumpai dalam CSV.");
+            
+            const headers = Object.keys(data[0]);
+
+            const colDate = headers.length > 2 ? headers[2] : headers[0]; 
+            const colNama = headers.length > 4 ? headers[4] : headers[0]; 
+            const colIC   = headers.length > 5 ? headers[5] : headers[0]; 
+            const colJan  = headers.length > 6 ? headers[6] : headers[0]; 
+            const colUmur = headers.length > 7 ? headers[7] : headers[0]; 
+            const colTest = headers.length > 9 ? headers[9] : headers[0]; 
+            const colResult = headers.length > 10 ? headers[10] : headers[0]; 
+
+            rawData = data.map(row => {
+                let rawJan = (row[colJan] || "").toString().trim().toUpperCase();
+                let normJan = "Tiada Data";
+                if(rawJan === 'L') normJan = 'Lelaki';
+                else if(rawJan === 'P') normJan = 'Perempuan';
+
+                let rawUmur = (row[colUmur] || "").toString().trim();
+                let umurRaw = parseInt(rawUmur);
+                let kumpulanUmur = "Tiada Maklumat";
+                
+                if (!isNaN(umurRaw)) {
+                    if(umurRaw < 14) kumpulanUmur = "< 14";
+                    else if(umurRaw >= 14 && umurRaw <= 50) kumpulanUmur = "15 - 50";
+                    else if(umurRaw > 50) kumpulanUmur = "> 50";
+                } else {
+                    umurRaw = "-";
+                }
+
+                let rawDate = (row[colDate] || "").toString().trim();
+                let cleanDate = rawDate.split(/[\s,]+/)[0]; 
+                let monthStr = "Tiada Tarikh";
+                
+                if (cleanDate) {
+                    let parts = cleanDate.split(/[\.\-\/]/); 
+                    if (parts.length >= 2) {
+                         let m = parseInt(parts[1]); 
+                         if (!isNaN(m) && m >= 1 && m <= 12) {
+                             const monthNames = ["Jan", "Feb", "Mac", "Apr", "Mei", "Jun", "Jul", "Ogo", "Sep", "Okt", "Nov", "Dis"];
+                             monthStr = monthNames[m - 1];
+                         }
+                    } else {
+                         monthStr = cleanDate.length > 3 ? cleanDate.substring(0,3) : cleanDate;
+                    }
+                }
+
+                let rawTest = (row[colTest] || "").toString().trim();
+                let lowerTest = rawTest.toLowerCase();
+                let normTest = "Lain-lain";
+                
+                if (lowerTest.includes("leptospirosis") || lowerTest.includes("lepto")) normTest = "Leptospirosis";
+                else if (lowerTest.includes("sputum afb") || lowerTest.includes("afb")) normTest = "Sputum AFB";
+                else if (lowerTest.includes("vdrl")) normTest = "VDRL";
+                else if (lowerTest.includes("dengue") || lowerTest.includes("denggi") || lowerTest.includes("combo")) normTest = "Dengue Combo";
+                else if (lowerTest.includes("culture") || lowerTest.includes("sensitivity") || lowerTest.includes("c&s")) normTest = "Culture & Sensitivity";
+                else if (rawTest !== "") normTest = rawTest; 
+
+                let rawResult = (row[colResult] || "-").toString().trim();
+
+                return {
+                    date: cleanDate, 
+                    month: monthStr,
+                    test: normTest,
+                    result: rawResult,
+                    jantina: normJan,
+                    umurRaw: umurRaw,
+                    umurLvl: kumpulanUmur,
+                    nama: (row[colNama] || "Tidak Dinamakan").toString().trim(),
+                    ic: (row[colIC] || "-").toString().trim()
+                };
+            });
+        }
+
+        function parseCustomDate(dateStr) {
+            if(!dateStr) return null;
+            const parts = dateStr.split(/[\.\-\/]/); 
+            if(parts.length >= 3) {
+                return new Date(parts[2], parseInt(parts[1]) - 1, parts[0]);
+            }
+            return null;
+        }
+
+        function setupDatePicker() {
+            fpInstance = flatpickr("#filterDate", {
+                mode: "range",         
+                dateFormat: "d.m.Y",   
+                allowInput: false,
+                onChange: function(selectedDates, dateStr, instance) {
+                    applyFilters(selectedDates);
+                }
+            });
+        }
+
+        function resetDateFilter() {
+            if(fpInstance) fpInstance.clear(); 
+            activeTestFilter = null; 
+            const searchInput = document.getElementById('searchInput');
+            if(searchInput) searchInput.value = ""; 
+            applyFilters([]); 
+        }
+
+        function applyFilters(selectedDates = []) {
+            if ((!selectedDates || selectedDates.length === 0) && fpInstance) {
+                selectedDates = fpInstance.selectedDates;
+            }
+
+            let baseData = [...rawData];
+
+            if (selectedDates && selectedDates.length === 1) {
+                let start = new Date(selectedDates[0]);
+                start.setHours(0,0,0,0);
+                
+                baseData = rawData.filter(d => {
+                    let dDate = parseCustomDate(d.date);
+                    if(!dDate) return false;
+                    dDate.setHours(0,0,0,0);
+                    return dDate.getTime() === start.getTime();
+                });
+            } else if (selectedDates && selectedDates.length === 2) {
+                let start = new Date(selectedDates[0]);
+                let end = new Date(selectedDates[1]);
+                start.setHours(0,0,0,0);
+                end.setHours(23,59,59,999); 
+                
+                baseData = rawData.filter(d => {
+                    let dDate = parseCustomDate(d.date);
+                    if(!dDate) return false;
+                    return dDate >= start && dDate <= end;
+                });
+            }
+
+            if (activeTestFilter) {
+                filteredData = baseData.filter(d => d.test === activeTestFilter);
+            } else {
+                filteredData = baseData;
+            }
+
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                const searchTerm = searchInput.value.toLowerCase().trim();
+                if (searchTerm !== "") {
+                    // Carian dilakukan ke atas nama ATAU nombor IC asal (tidak disembunyikan dalam carian)
+                    filteredData = filteredData.filter(d => 
+                        d.nama.toLowerCase().includes(searchTerm) || 
+                        d.ic.toLowerCase().includes(searchTerm)
+                    );
+                }
+            }
+
+            updateKPIs();
+            updateChartsData(baseData); 
+            updateTable();
+        }
+
+        function updateKPIs() {
+            document.getElementById('kpiTotal').innerText = filteredData.length.toLocaleString();
+            const testCounts = {};
+            filteredData.forEach(d => { testCounts[d.test] = (testCounts[d.test] || 0) + 1; });
+            
+            let topTest = "-"; let maxCount = 0;
+            for(const [test, count] of Object.entries(testCounts)) {
+                if(count > maxCount) { maxCount = count; topTest = test; }
+            }
+            document.getElementById('kpiTopTest').innerText = topTest;
+        }
+
+        function initCharts() {
+            const chartOptions = {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false }, datalabels: { color: '#475569', font: { weight: 'bold' }, formatter: (v) => v > 0 ? v : '' } }
+            };
+
+            charts.test = new Chart(document.getElementById('testChart'), {
+                type: 'bar',
+                data: { labels: [], datasets: [{ data: [], backgroundColor: '#3b82f6', borderRadius: 4 }] },
+                options: { 
+                    ...chartOptions, 
+                    indexAxis: 'y', 
+                    plugins: { ...chartOptions.plugins, datalabels: { anchor: 'end', align: 'right', padding: 4 } }, 
+                    layout: { padding: { right: 30 } },
+                    onClick: (event, elements, chart) => {
+                        if (elements.length > 0) {
+                            const idx = elements[0].index;
+                            const selectedTest = chart.data.labels[idx];
+                            if (activeTestFilter === selectedTest) {
+                                activeTestFilter = null; 
+                            } else {
+                                activeTestFilter = selectedTest;
+                            }
+                            applyFilters(); 
+                        }
+                    },
+                    onHover: (event, chartElement) => {
+                        event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
+                    }
+                }
+            });
+
+            charts.gender = new Chart(document.getElementById('genderChart'), {
+                type: 'pie',
+                data: { labels: ['Lelaki', 'Perempuan'], datasets: [{ data: [0,0], backgroundColor: ['#0ea5e9', '#ec4899'] }] },
+                options: { ...chartOptions, plugins: { legend: { display: true, position: 'bottom' }, datalabels: { color: '#ffffff' } } }
+            });
+        }
+
+        function updateChartsData(baseDataForTest) {
+            let dataForTest = baseDataForTest || filteredData;
+
+            let testCounts = {};
+            let genderCounts = {'Lelaki': 0, 'Perempuan': 0};
+
+            dataForTest.forEach(d => {
+                testCounts[d.test] = (testCounts[d.test] || 0) + 1;
+            });
+
+            filteredData.forEach(d => {
+                if(genderCounts[d.jantina] !== undefined) genderCounts[d.jantina]++;
+            });
+
+            const sortedTest = Object.entries(testCounts).sort((a,b) => b[1] - a[1]).slice(0, 7);
+            charts.test.data.labels = sortedTest.map(x => x[0]);
+            charts.test.data.datasets[0].data = sortedTest.map(x => x[1]);
+            
+            let fbIdx = 0;
+            charts.test.data.datasets[0].backgroundColor = sortedTest.map(x => {
+                let tName = x[0];
+                let baseColor = testColorMap[tName];
+                
+                if (!baseColor) {
+                    baseColor = fallbackColors[fbIdx % fallbackColors.length];
+                    fbIdx++;
+                }
+
+                if (activeTestFilter && tName !== activeTestFilter) {
+                    return baseColor + '40';
+                }
+                
+                return baseColor;
+            });
+            
+            charts.test.update();
+
+            charts.gender.data.datasets[0].data = [genderCounts['Lelaki'], genderCounts['Perempuan']];
+            charts.gender.update();
+        }
+
+        function updateTable() {
+            const tbody = document.getElementById('tableBody');
+            document.getElementById('tableCount').innerText = `${filteredData.length} Rekod`;
+            let htmlStr = '';
+
+            if(filteredData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-slate-500 font-medium">Tiada rekod pesakit dijumpai.</td></tr>`;
+                return;
+            }
+
+            const reverseData = [...filteredData].reverse();
+
+            reverseData.forEach(d => {
+                let maskedIc = d.ic;
+                
+                // Melindungi 6 digit pertama No KP pesakit (cth: XXXXXX085697)
+                if (maskedIc && maskedIc !== "-") {
+                    // Buang tanda '-' sekiranya ada untuk kiraan seragam, atau terus lindungi permulaan teks
+                    let cleanIc = maskedIc.replace(/[-\s]/g, "");
+                    if (cleanIc.length > 6) {
+                        maskedIc = "XXXXXX" + cleanIc.substring(6);
+                    } else {
+                        maskedIc = "XXXXXX";
+                    }
+                }
+
+                htmlStr += `
+                    <tr class="hover:bg-white/60 transition border-b border-slate-200/50 last:border-0">
+                        <td class="px-4 py-3 text-sm text-slate-800 font-medium">${d.nama}</td>
+                        <td class="px-4 py-3 text-sm text-slate-600 tracking-wider">${maskedIc}</td>
+                        <td class="px-4 py-3 text-sm">
+                            <span class="bg-white/80 text-blue-700 px-2.5 py-1 rounded-full text-xs font-semibold border border-blue-100 shadow-sm">${d.test}</span>
+                        </td>
+                        <td class="px-4 py-3 text-sm">
+                            <span class="bg-purple-100/70 text-purple-800 px-2.5 py-1 rounded-md text-xs border border-purple-200 shadow-sm font-medium">${d.result}</span>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-slate-600">${d.umurRaw} Tahun</td>
+                        <td class="px-4 py-3 text-sm font-semibold text-slate-700">${d.date}</td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = htmlStr;
+        }
+
+        function updateTimeDisplay() {
+            const now = new Date();
+            const dateString = now.toLocaleDateString('ms-MY', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute:'2-digit' });
+            document.getElementById('kpiDate').innerText = dateString;
+        }
+
+        // KAWALAN AKSES KATA LALUAN
+        function checkPassword() {
+            const input = document.getElementById('passInput').value;
+            if (input === 'hoag2026') {
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('loader').style.display = 'flex';
+                initData(); 
+            } else {
+                document.getElementById('errorMsg').classList.remove('hidden');
+                document.getElementById('passInput').value = '';
+                document.getElementById('passInput').focus();
+            }
+        }
+
+        document.getElementById("passInput").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                checkPassword();
+            }
+        });
+    </script>
+</body>
+</html>
